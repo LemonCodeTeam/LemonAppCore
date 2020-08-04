@@ -289,6 +289,8 @@ namespace LemonAppCore
             this.Get<TextBlock>("UserName").Text = name;
             Settings.USettings.name = name;
             Settings.Save();
+
+            SyncBtn_OnClick(null, null);
         }
         #endregion
 

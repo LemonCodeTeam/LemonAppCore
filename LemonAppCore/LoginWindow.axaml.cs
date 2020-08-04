@@ -42,6 +42,7 @@ namespace LemonAppCore
             }
             //CallBack
             mw.Login(logindata);
+            Close();
         }
     }
 }

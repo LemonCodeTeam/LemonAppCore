@@ -32,7 +32,6 @@ namespace LemonAppCore
             if (!File.Exists(fileName))
             {
                 //No Login
-                File.CreateText(fileName);
                 Save();
             }
             else
