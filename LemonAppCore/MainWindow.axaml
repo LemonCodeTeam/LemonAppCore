@@ -1,0 +1,148 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" Width="850" Height="610"
+        x:Class="LemonAppCore.MainWindow"
+		x:Name="window"
+		xmlns:items="clr-namespace:LemonAppCore.Items"
+		xmlns:helper="clr-namespace:LemonAppCore.Helpers"
+        Title="LemonAppCore">
+	<Window.Styles>
+		<!--#region TabControl Styles-->
+		<Style Selector="TabControl">
+			<Setter Property="Background" Value="{x:Null}"/>
+		</Style>
+		<Style Selector="TabControl WrapPanel">
+			<Setter Property="HorizontalAlignment" Value="Center"/>
+			<Setter Property="Background" Value="#00000000"/>
+		</Style>
+
+		<Style Selector="TabItem">
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Height" Value="34"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="Background" Value="#6699FF"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="Margin" Value="0 0 0 0"/>
+			<Setter Property="Padding" Value="10 0"/>
+		</Style>
+		<Style Selector="TabItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+			<Setter Property="Background" Value="#4885FF"/>
+		</Style>
+
+		<Style Selector="TabItem:focus">
+			<Setter Property="Foreground" Value="#4885FF"/>
+			<Setter Property="Margin" Value="0 0 0 0"/>
+			<Setter Property="Padding" Value="10 0"/>
+		</Style>
+		<Style Selector="TabItem:focus /template/ ContentPresenter#PART_ContentPresenter">
+			<Setter Property="Background" Value="White"/>
+		</Style>
+
+		<Style Selector="TabItem:selected">
+			<Setter Property="Foreground" Value="#2B579A"/>
+			<Setter Property="Margin" Value="0 0 0 0"/>
+			<Setter Property="Padding" Value="10 0"/>
+		</Style>
+		<Style Selector="TabItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+			<Setter Property="Background" Value="White"/>
+		</Style>
+		<!--#endregion-->
+	</Window.Styles>
+	<Grid>
+		<!--顶部title-->
+		<Grid VerticalAlignment="Top" Height="50" Background="#6699FF">
+			<!--#region Title&UserInfo-->
+			<TextBlock HorizontalAlignment="Left" Foreground="White" FontSize="14" VerticalAlignment="Center" Margin="10,0,0,10" Text="Lemon App"/>
+			<TextBlock HorizontalAlignment="Left" Foreground="White" FontSize="10" VerticalAlignment="Center" Margin="10,20,0,0" Text="Powered by .Net Core 3.1"/>
+
+			<TextBlock x:Name="UserName" HorizontalAlignment="Right" Foreground="White" FontSize="12" Background="#00000000"
+		   VerticalAlignment="Center" Margin="0,0,50,0" Text="Sign in" Width="150" TextAlignment="Right"/>
+			<Border x:Name="UserImg" Width="30" Height="30" Background="White" HorizontalAlignment="Right" Margin="0,0,10,0" CornerRadius="30"/>
+			<!--#endregion-->
+		</Grid>
+		<!--中间的内容-->
+		<TabControl Margin="0,8,0,38" VerticalAlignment="Stretch">
+			<TabItem x:Name="MeTab" Header="Me" VerticalContentAlignment="Center">
+				<ScrollViewer>
+					<StackPanel Orientation="Vertical">
+						<Grid Margin="10,10,0,0">
+							<TextBlock Text="Created" FontWeight="Bold" FontSize="20"/>
+							<Button x:Name="ILikeBtn" HorizontalAlignment="Right" Height="30" Width="50" Content="Fav." Margin="0,0,80,0"/>
+							<Button x:Name="SyncBtn" HorizontalAlignment="Right" Height="30" Width="50" Content="Sync" Margin="0,0,20,0"/>
+						</Grid>
+						<ScrollViewer HorizontalScrollBarVisibility="Visible" Margin="0,10,0,0" HorizontalAlignment="Stretch" Width="{Binding Width, ElementName=window}">
+							<WrapPanel x:Name="Me_MyGDCreated">
+							</WrapPanel>
+						</ScrollViewer>
+						<TextBlock Text="Liked" FontWeight="Bold" FontSize="20" Margin="10,10,10,0"/>
+						<ScrollViewer HorizontalScrollBarVisibility="Visible" Margin="0,10,0,0" HorizontalAlignment="Stretch" Width="{Binding Width, ElementName=window}">
+							<WrapPanel x:Name="Me_MyGDLoved"/>
+						</ScrollViewer>
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+			<TabItem x:Name="FindTab" Header="Find" VerticalContentAlignment="Center">
+				<StackPanel>
+					<Grid>
+
+					</Grid>
+				</StackPanel>
+			</TabItem>
+			<!-- 设计时可以保持 IsSelected="True"-->
+			<TabItem x:Name="SearchTab" Header="Search" VerticalContentAlignment="Center">
+				<StackPanel>
+					<Grid>
+						<TextBox x:Name="SearchBox" Watermark="Search something here..."  Margin="10,40,100,0"/>
+						<Button x:Name="SearchBtn" Content="Search" Width="80" Height="26" HorizontalAlignment="Right" Margin="10,40,10,0" />
+					</Grid>
+					<ListBox x:Name="SearchSmartSugBox"  BorderThickness="1" Margin="10">
+						<ListBox.ItemTemplate>
+							<DataTemplate>
+								<Border  Padding="5">
+									<TextBlock Text="{Binding desc, Mode=TwoWay}" TextWrapping="NoWrap"/>
+								</Border>
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
+				</StackPanel>
+			</TabItem>
+			<TabItem x:Name="PlayListTab" Header="PlayList" VerticalContentAlignment="Center">
+				<ScrollViewer>
+					<StackPanel x:Name="PlayListBox" Orientation="Vertical">
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+			<TabItem x:Name="listTab" Header="list" VerticalContentAlignment="Center" IsVisible="False">
+				<ScrollViewer>
+					<StackPanel x:Name="ResultListBox" Orientation="Vertical">
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+		</TabControl>
+		<!--底部播放条儿-->
+		<Grid Background="#2D2D30" VerticalAlignment="Bottom" Height="75">
+			<Slider x:Name="jd" Margin="0,-10,0,0"/>
+			<Border x:Name="MusicImage" CornerRadius="5" Width="50" Height="50" Background="White" HorizontalAlignment="Left" Margin="10,0,0,0"/>
+			<TextBlock x:Name="MusicTitle" Text="Title  MusicName" Foreground="White" HorizontalAlignment="Left" Margin="70,20,0,0"/>
+			<TextBlock  x:Name="MSinger" Text="SubLine  SingerName" Opacity="0.7" Foreground="White" HorizontalAlignment="Left" Margin="70,40,0,0"/>
+			<WrapPanel  VerticalAlignment="Center" HorizontalAlignment="Center">
+				<Border x:Name="LastBtn" Height="25"  Background="#00000000" Width="25" Margin="10,0,10,0" HorizontalAlignment="Left">
+					<Path Data="M335.313455 560.104727c-35.374545-26.391273-35.374545-69.748364 0-96.209454L892.043636 48.174545C927.371636 21.713455 956.509091 36.305455 956.509091 80.523636v863.115637c0 44.171636-29.044364 58.717091-64.442182 32.186182L335.313455 560.104727zM46.545455 80.453818C46.545455 36.165818 74.286545 0 108.171636 0c33.931636 0 61.672727 36.189091 61.672728 80.430545v863.13891C169.867636 987.694545 142.126545 1024 108.194909 1024 74.286545 1024 46.545455 987.717818 46.545455 943.569455V80.430545z" Stretch="Uniform" StrokeThickness="5" Fill="White" Width="15" Height="15"/>
+				</Border>
+				<Border x:Name="PlayBtn" Height="30" Background="#00000000" Width="30" Margin="10,0,10,0" HorizontalAlignment="Left">
+					<Path x:Name="PlayPath" Data="M514 114.3c-219.9 0-398.9 178.9-398.9 398.9 0.1 219.9 179 398.8 398.9 398.8 219.9 0 398.8-178.9 398.8-398.8S733.9 114.3 514 114.3z m173 421.9L437.1 680.5c-17.7 10.2-39.8-2.6-39.8-23V368.9c0-20.4 22.1-33.2 39.8-23L687 490.2c17.7 10.2 17.7 35.8 0 46z" Stretch="Uniform" StrokeThickness="5" Fill="#6699FF"/>
+				</Border>
+				<Border x:Name="NextBtn" Width="25" Height="25" Background="#00000000" Margin="10,0,10,0" HorizontalAlignment="Left" >
+					<Path Data="M691.110577 560.087751c35.393053-26.383912 35.393053-69.73309 0-96.204753L134.415879 48.175503C99.081327 21.73309 69.977122 36.270567 69.977122 80.526508V943.619744c0 44.16819 29.045704 58.734918 64.438757 32.175503l556.694698-415.707496zM979.90034 80.438757C979.90034 36.212066 952.141656 0 918.269627 0c-33.93053 0-61.689214 36.212066-61.689214 80.438757v863.122486c0 44.16819 27.758684 80.438757 61.718464 80.438757 33.842779 0 61.601463-36.270567 61.601463-80.438757V80.438757z" Stretch="Uniform" StrokeThickness="5" Fill="White" Width="15" Height="15"/>
+				</Border>
+			</WrapPanel>
+			<WrapPanel VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,10,0">
+				<TextBlock x:Name="tTime_Now" Text="00:00" Foreground="White"/>
+				<TextBlock Text=" / " Foreground="White"/>
+				<TextBlock x:Name="tTime_All" Text="00:00" Foreground="White"/>
+			</WrapPanel>
+		</Grid>
+	</Grid>
+</Window>
