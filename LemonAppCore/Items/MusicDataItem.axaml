@@ -5,10 +5,10 @@
              mc:Ignorable="d" Height="45" Background="#00000000"
              x:Class="LemonAppCore.Items.MusicDataItem">
 	<Grid>
-		<TextBlock x:Name="MusicName" Text="MusicNameccccccccccccccccccccccccccccc" TextWrapping="NoWrap" TextAlignment="Left" Foreground="Black" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,15"/>
+		<TextBlock x:Name="MusicName" Text="MusicNameccccccccccccccccccccccccccccc" TextWrapping="NoWrap" TextAlignment="Left" Foreground="#404040" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,15"/>
 		<WrapPanel HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,15,0,0" Opacity="0.6">
-			<TextBlock x:Name="SingerName" Text="SingerName" TextWrapping="NoWrap" Foreground="Black"/>
-			<TextBlock x:Name="Album" Margin="5,0,0,0" Text="Alumb" TextWrapping="NoWrap" Foreground="Black"/>
+			<TextBlock x:Name="SingerName" Text="SingerName" TextWrapping="NoWrap" Foreground="#404040"/>
+			<TextBlock x:Name="Album" Margin="5,0,0,0" Text="Alumb" TextWrapping="NoWrap" Foreground="#404040"/>
 		</WrapPanel>
 		<Border x:Name="color" HorizontalAlignment="Left" Width="5" Background="#6699FF" Margin="0,5" IsVisible="False" />
 	</Grid>

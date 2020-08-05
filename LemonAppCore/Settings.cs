@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using System.Text;
 using System.Runtime.Serialization.Json;
 using Newtonsoft.Json.Linq;
+using LemonAppCore.Helpers;
 
 namespace LemonAppCore
 {
@@ -45,6 +46,14 @@ namespace LemonAppCore
                     USettings.cookies = obj["cookies"].ToString();
                     USettings.g_tk = obj["g_tk"].ToString();
                     USettings.name = obj["name"].ToString();
+                    if (json.Contains("LastPlay"))
+                        USettings.LastPlay = JsonConvert.DeserializeObject<Music>(obj["LastPlay"].ToString());
+                    if (json.Contains("MusicGDataPlayList"))
+                    {
+                        USettings.MusicGDataPlayList = JsonConvert.DeserializeObject<List<Music>>(obj["MusicGDataPlayList"].ToString());
+                    }
+                    if (json.Contains("PlayingIndex"))
+                        USettings.PlayingIndex = int.Parse(obj["PlayingIndex"].ToString());
                 }
             }
         }
@@ -59,6 +68,10 @@ namespace LemonAppCore
         public string cookies="";
         public string g_tk="";
         public string name = "";
+
+        public Music LastPlay=new Music();
+        public int PlayingIndex = -1;
+        public List<Music> MusicGDataPlayList = new List<Music>();
     }
 
     public class JSON

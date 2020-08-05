@@ -60,20 +60,22 @@ namespace LemonAppCore
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+            this.Closing += MainWindow_Closing;
+            PropertyChanged += MainWindow_PropertyChanged;
             #region Login&ReadSettings
             if (!Directory.Exists(Settings.CachePath))
                 Directory.CreateDirectory(Settings.CachePath);
             if (!Directory.Exists(Settings.MusicCachePath))
                 Directory.CreateDirectory(Settings.MusicCachePath);
-            if (!Directory.Exists(Settings.MusicCachePath+"\\Image\\"))
-                Directory.CreateDirectory(Settings.MusicCachePath+"\\Image\\");
+            if (!Directory.Exists(Settings.MusicCachePath + "\\Image\\"))
+                Directory.CreateDirectory(Settings.MusicCachePath + "\\Image\\");
             Settings.Load();
             if (Settings.USettings.qq != string.Empty)
             {
                 this.Get<Border>("UserImg").Background = new ImageBrush(new Bitmap(Settings.CachePath + Settings.USettings.qq + ".jpg"));
                 this.Get<TextBlock>("UserName").Text = Settings.USettings.name;
 
-                SyncBtn_OnClick(null, null);
+                //SyncBtn_OnClick(null, null);
             }
             this.Get<TextBlock>("UserName").Tapped += LoginBtn_Tapped;
             #endregion
@@ -96,12 +98,15 @@ namespace LemonAppCore
             SearchBox.KeyUp += SearchBox_KeyUp;
             #endregion
             #region MusicPlay
+            //---------------------Prepare to play---------
             PlayCallBack = new Action<MusicDataItem>((m) =>
             {
                 PlayMusic(m);
                 if (m.type == 0)
                 {
                     PlayListBox.Children.Clear();
+                    Settings.USettings.MusicGDataPlayList.Clear();
+                    int index = 0;
                     foreach (MusicDataItem dt in ResultListBox.Children)
                     {
                         MusicDataItem md = new MusicDataItem(dt.m);
@@ -110,13 +115,20 @@ namespace LemonAppCore
                         {
                             Playing = md;
                             md.Check(true);
+                            Settings.USettings.PlayingIndex = index;
                         }
                         PlayListBox.Children.Add(md);
+                        Settings.USettings.MusicGDataPlayList.Add(dt.m);
+                        index++;
                     }
+                }
+                else {
+                    Settings.USettings.PlayingIndex = PlayListBox.Children.IndexOf(Playing);
                 }
             });
             t.Elapsed += T_Elapsed;
-            t_Cleaner.Elapsed += delegate{
+            t_Cleaner.Elapsed += delegate
+            {
                 GC.Collect();
             };
             t_Cleaner.Start();
@@ -132,23 +144,80 @@ namespace LemonAppCore
             jd = this.Get<Slider>("jd");
             //--------------Event Handler---------------------
             PlayBtn.Tapped += PlayBtn_Tapped;
-            jd.AddHandler(PointerPressedEvent, delegate {
+            jd.AddHandler(PointerPressedEvent, delegate
+            {
                 CanJd = false;
-            },RoutingStrategies.Tunnel);
-            jd.AddHandler(PointerReleasedEvent,delegate {
+            }, RoutingStrategies.Tunnel);
+            jd.AddHandler(PointerReleasedEvent, delegate
+            {
                 mp.Position = TimeSpan.FromMilliseconds(jd.Value);
                 CanJd = true;
-            },RoutingStrategies.Tunnel);
+            }, RoutingStrategies.Tunnel);
+            //---------------------Load LastPlay--------------------
+            PlayListBox.Children.Clear();
+            int index = 0;
+            foreach (Music dt in Settings.USettings.MusicGDataPlayList)
+            {
+                MusicDataItem md = new MusicDataItem(dt);
+                md.type = 1;
+                if (index==Settings.USettings.PlayingIndex)
+                {
+                    Playing = md;
+                    md.Check(true);
+                    PlayMusic(md, false);
+                }
+                PlayListBox.Children.Add(md);
+                index++;
+            }
             #endregion
             this.Get<Button>("ILikeBtn").Click += ILikeBtn_OnClick;
             this.Get<Button>("SyncBtn").Click += SyncBtn_OnClick;
             Me_MyGDCreated = this.Get<WrapPanel>("Me_MyGDCreated");
             Me_MyGDLoved = this.Get<WrapPanel>("Me_MyGDLoved");
         }
+
+        private void MainWindow_PropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == WidthProperty)
+            {
+                WidthUI(Me_MyGDCreated);
+                WidthUI(Me_MyGDLoved);
+            }
+        }
+
+        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            Settings.Save();
+            mp.Free();
+        }
+        public void WidthUI(Panel wp, double? ContentWidth = null)
+        {
+            if (wp.IsVisible && wp.Children.Count > 0)
+            {
+                int lineCount = int.Parse(wp.Tag.ToString());
+                var uc = wp.Children[0] as UserControl;
+                double max = uc.MaxWidth;
+                double min = uc.MinWidth;
+                ContentWidth = ContentWidth ?? Width-20;
+                if (ContentWidth > (20 + max) * lineCount)
+                    lineCount++;
+                else if (ContentWidth < (20 + min) * lineCount)
+                    lineCount--;
+                WidTX(wp, lineCount, (double)ContentWidth);
+            }
+        }
+
+        private void WidTX(Panel wp, int lineCount, double ContentWidth)
+        {
+            foreach (UserControl dx in wp.Children)
+                dx.Width = (ContentWidth - 20 * lineCount) / lineCount;
+        }
+
         #region Search
         private void SearchSmartSugBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (SearchSmartSugBox.SelectedItem != null&& SearchSmartSugBox.SelectedItem is SSBox) {
+            if (SearchSmartSugBox.SelectedItem != null && SearchSmartSugBox.SelectedItem is SSBox)
+            {
                 SearchBox.Text = (SearchSmartSugBox.SelectedItem as SSBox).content;
             }
         }
@@ -156,7 +225,8 @@ namespace LemonAppCore
         {
             if (e.Key == Avalonia.Input.Key.Enter)
                 SearchBtn_Click(null, null);
-            else {
+            else
+            {
                 if (SearchBox.Text != null)
                     SearchSmartSugBox.Items = await MusicLib.Search_SmartBoxAsync(SearchBox.Text);
             }
@@ -176,12 +246,14 @@ namespace LemonAppCore
         }
         #endregion
         #region PlayMusic
-        private void LastBtn_Tapped(object sender, RoutedEventArgs e) {
+        private void LastBtn_Tapped(object sender, RoutedEventArgs e)
+        {
             MusicDataItem k;
-            if (PlayListBox.Children.IndexOf(Playing) ==0)
-                k = PlayListBox.Children[PlayListBox.Children.Count-1] as MusicDataItem;
+            if (PlayListBox.Children.IndexOf(Playing) == 0)
+                k = PlayListBox.Children[PlayListBox.Children.Count - 1] as MusicDataItem;
             else k = PlayListBox.Children[PlayListBox.Children.IndexOf(Playing) - 1] as MusicDataItem;
             k.Check(true);
+            Settings.USettings.PlayingIndex = PlayListBox.Children.IndexOf(k);
             foreach (MusicDataItem dt in ResultListBox.Children)
                 if (dt.m.MusicID == k.m.MusicID)
                 {
@@ -191,12 +263,14 @@ namespace LemonAppCore
 
             PlayMusic(k);
         }
-        private void NextBtn_Tapped(object sender, RoutedEventArgs e) {
+        private void NextBtn_Tapped(object sender, RoutedEventArgs e)
+        {
             MusicDataItem k;
             if (PlayListBox.Children.IndexOf(Playing) + 1 == PlayListBox.Children.Count)
                 k = PlayListBox.Children[0] as MusicDataItem;
             else k = PlayListBox.Children[PlayListBox.Children.IndexOf(Playing) + 1] as MusicDataItem;
             k.Check(true);
+            Settings.USettings.PlayingIndex = PlayListBox.Children.IndexOf(k);
             foreach (MusicDataItem dt in ResultListBox.Children)
                 if (dt.m.MusicID == k.m.MusicID)
                 {
@@ -213,7 +287,8 @@ namespace LemonAppCore
                 mp.Pause();
                 PlayPath.Data = Geometry.Parse(Properties.Resources.Play);
             }
-            else {
+            else
+            {
                 t.Start();
                 mp.Play();
                 PlayPath.Data = Geometry.Parse(Properties.Resources.Pause);
@@ -234,13 +309,15 @@ namespace LemonAppCore
             tTime_All.Text = alls;
             jd.Maximum = all;
 
-            if (now == all && now > 2000 && all != 0) {
+            if (now == all && now > 2000 && all != 0)
+            {
                 //PLAY Finished
                 NextBtn_Tapped(null, null);
             }
         }
         private MusicDataItem Playing;
-        private async void PlayMusic(MusicDataItem m) {
+        private async void PlayMusic(MusicDataItem m,bool onceplay=true)
+        {
             var mData = m.m;
             Playing = m;
             t.Stop();
@@ -261,9 +338,12 @@ namespace LemonAppCore
                 var musicurl = await MusicLib.GetUrlAsync(mData.MusicID);
                 mp.LoadUrl(downloadpath, musicurl, null, null);
             }
-            t.Start();
-            mp.Play();
-            PlayPath.Data = Geometry.Parse(Properties.Resources.Pause);
+            if (onceplay)
+            {
+                t.Start();
+                mp.Play();
+                PlayPath.Data = Geometry.Parse(Properties.Resources.Pause);
+            }
         }
         public static Action<MusicDataItem> PlayCallBack;
         #endregion
@@ -293,7 +373,7 @@ namespace LemonAppCore
             SyncBtn_OnClick(null, null);
         }
         #endregion
-
+        #region Me & GDLoader
         private async void LoadGDByID(string id) {
             ResultListBox.Children.Clear();
             var data = await MusicLib.GetGDAsync(id, null, new Action<Music, bool>((m, b) => {
@@ -328,10 +408,10 @@ namespace LemonAppCore
                 Me_MyGDLoved.Children.Add(n);
             }
         }
-
         private void GDTap_Tapped(object sender, RoutedEventArgs e)
         {
             LoadGDByID(((sender as NormalItem).data as MusicGData).id);
         }
+        #endregion
     }
 }

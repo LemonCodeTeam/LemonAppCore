@@ -20,7 +20,16 @@ namespace LemonAppCore.Items
             this.Get<TextBlock>("title").Text = title;
             LoadImg(imgurl);
             data = dt;
+            this.PropertyChanged += NormalItem_PropertyChanged;
         }
+
+        private void NormalItem_PropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == WidthProperty) {
+                this.Height = Width + 30;
+            }
+        }
+
         private async void LoadImg(string url) {
             Bitmap im = await ImageCacheHelp.GetImageByUrl(url) ?? await ImageCacheHelp.GetImageByUrl("https://y.gtimg.cn/mediastyle/global/img/album_300.png?max_age=31536000");
             this.Get<Border>("img").Background = new ImageBrush(im);

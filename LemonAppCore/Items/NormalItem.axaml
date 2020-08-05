@@ -2,12 +2,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" Width="120"
+             mc:Ignorable="d" Width="120" x:Name="host" Height="150" MinWidth="120" MaxWidth="200"
              x:Class="LemonAppCore.Items.NormalItem">
 	<Grid>
-		<Border x:Name="img" Width="120" Height="120" VerticalAlignment="Top" Background="LemonChiffon" CornerRadius="5"/>
-		<Grid  Margin="5,120,5,0">
-			<TextBlock x:Name="title"  Text="Test" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center"  Margin="0,10,0,10"/>
+		<Border x:Name="img" Width="{Binding Width, ElementName=host}" Height="{Binding Width, ElementName=host}" VerticalAlignment="Top" Background="LemonChiffon" CornerRadius="5"/>
+		<Grid  Margin="5,0,5,0" VerticalAlignment="Bottom" Height="30">
+			<TextBlock x:Name="title"  Text="Test" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#404040"/>
 		</Grid>
 	</Grid>
 </UserControl>
