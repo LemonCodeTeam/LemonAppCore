@@ -34,6 +34,9 @@ namespace LemonAppCore.Items
                 this.Check(true);
                 MainWindow.PlayCallBack(this);
             };
+            this.Get<Border>("DlBtn").Tapped += delegate {
+                MainWindow.DownloadCallBack(m);
+            };
             MusicName = this.Get<TextBlock>("MusicName");
             SingerName = this.Get<TextBlock>("SingerName");
             Album = this.Get<TextBlock>("Album");

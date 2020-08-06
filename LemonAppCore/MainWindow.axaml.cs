@@ -4,13 +4,16 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using LemonAppCore.Helpers;
 using LemonAppCore.Items;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace LemonAppCore
 {
@@ -37,14 +40,18 @@ namespace LemonAppCore
         #region DataPanels
         StackPanel ResultListBox;
         StackPanel PlayListBox;
+        StackPanel DownloadList;
         #endregion
         #region Search
         ListBox SearchSmartSugBox;
         TextBox SearchBox;
         #endregion
+        #region Download
+        Button Dl_PauseBtn;
+        Button Dl_CancelAllBtn;
+        #endregion
         #region Tabs
         private TabItem MeTab;
-        private TabItem FindTab;
         private TabItem SearchTab;
         private TabItem PlayListTab;
         private TabItem listTab;
@@ -60,8 +67,16 @@ namespace LemonAppCore
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+            L();
+        }
+        private void L() {
             this.Closing += MainWindow_Closing;
             PropertyChanged += MainWindow_PropertyChanged;
+            MainWindow_Load();
+        }
+
+        private void MainWindow_Load()
+        {
             #region Login&ReadSettings
             if (!Directory.Exists(Settings.CachePath))
                 Directory.CreateDirectory(Settings.CachePath);
@@ -69,19 +84,20 @@ namespace LemonAppCore
                 Directory.CreateDirectory(Settings.MusicCachePath);
             if (!Directory.Exists(Settings.MusicCachePath + "\\Image\\"))
                 Directory.CreateDirectory(Settings.MusicCachePath + "\\Image\\");
+            if (!Directory.Exists(Settings.DownloadPath))
+                Directory.CreateDirectory(Settings.DownloadPath);
             Settings.Load();
             if (Settings.USettings.qq != string.Empty)
             {
                 this.Get<Border>("UserImg").Background = new ImageBrush(new Bitmap(Settings.CachePath + Settings.USettings.qq + ".jpg"));
                 this.Get<TextBlock>("UserName").Text = Settings.USettings.name;
 
-                //SyncBtn_OnClick(null, null);
+                SyncBtn_OnClick(null, null);
             }
             this.Get<TextBlock>("UserName").Tapped += LoginBtn_Tapped;
             #endregion
             #region Tabs
             MeTab = this.Get<TabItem>("MeTab");
-            FindTab = this.Get<TabItem>("FindTab");
             SearchTab = this.Get<TabItem>("SearchTab");
             PlayListTab = this.Get<TabItem>("PlayListTab");
             listTab = this.Get<TabItem>("listTab");
@@ -89,6 +105,7 @@ namespace LemonAppCore
             #region DataPanels
             ResultListBox = this.Get<StackPanel>("ResultListBox");
             PlayListBox = this.Get<StackPanel>("PlayListBox");
+            DownloadList = this.Get<StackPanel>("DownloadList");
             #endregion
             #region Search
             this.Get<Button>("SearchBtn").Click += SearchBtn_Click;
@@ -111,6 +128,7 @@ namespace LemonAppCore
                     {
                         MusicDataItem md = new MusicDataItem(dt.m);
                         md.type = 1;
+                        md.Width = Width - 20;
                         if (dt.m.MusicID == Playing.m.MusicID)
                         {
                             Playing = md;
@@ -122,7 +140,8 @@ namespace LemonAppCore
                         index++;
                     }
                 }
-                else {
+                else
+                {
                     Settings.USettings.PlayingIndex = PlayListBox.Children.IndexOf(Playing);
                 }
             });
@@ -160,7 +179,8 @@ namespace LemonAppCore
             {
                 MusicDataItem md = new MusicDataItem(dt);
                 md.type = 1;
-                if (index==Settings.USettings.PlayingIndex)
+                md.Width = Width - 20;
+                if (index == Settings.USettings.PlayingIndex)
                 {
                     Playing = md;
                     md.Check(true);
@@ -170,10 +190,56 @@ namespace LemonAppCore
                 index++;
             }
             #endregion
+            #region Me
             this.Get<Button>("ILikeBtn").Click += ILikeBtn_OnClick;
             this.Get<Button>("SyncBtn").Click += SyncBtn_OnClick;
             Me_MyGDCreated = this.Get<WrapPanel>("Me_MyGDCreated");
             Me_MyGDLoved = this.Get<WrapPanel>("Me_MyGDLoved");
+            #endregion
+            #region Download
+            DownloadCallBack = new Action<Music>(PushDownload);
+            Dl_CancelAllBtn = this.Get<Button>("Dl_CancelAllBtn");
+            Dl_PauseBtn = this.Get<Button>("Dl_PauseBtn");
+
+            Dl_CancelAllBtn.Click += Dl_CancelAllBtn_Click;
+            Dl_PauseBtn.Click += Dl_PauseBtn_Click;
+
+            this.Get<Button>("Relb_DlAllBtn").Click += delegate {
+                List<Music> m = new List<Music>();
+                foreach (MusicDataItem md in ResultListBox.Children)
+                    m.Add(md.m);
+                PushDownload(m);
+            };
+            this.Get<Button>("Pllb_DlAllBtn").Click += delegate {
+                List<Music> m = new List<Music>();
+                foreach (MusicDataItem md in PlayListBox.Children)
+                    m.Add(md.m);
+                PushDownload(m);
+            };
+            #endregion
+        }
+
+        private void Dl_CancelAllBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dl_RunningCode == 2 || Dl_RunningCode == 1) {
+                Dl_RunningCode = 0;
+                Dl_Stop = true;
+                DownloadList.Children.Clear();
+            }
+        }
+
+        private void Dl_PauseBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dl_RunningCode == 2)
+            {
+                Dl_RunningCode = 1;
+                Dl_PauseBtn.Content = "开始";
+            }
+            else if (Dl_RunningCode == 1)
+            {
+                Dl_RunningCode = 2;
+                Dl_PauseBtn.Content = "暂停";
+            }
         }
 
         private void MainWindow_PropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
@@ -182,6 +248,9 @@ namespace LemonAppCore
             {
                 WidthUI(Me_MyGDCreated);
                 WidthUI(Me_MyGDLoved);
+                WidthList(PlayListBox);
+                WidthList(ResultListBox);
+                WidthList(DownloadList);
             }
         }
 
@@ -189,6 +258,11 @@ namespace LemonAppCore
         {
             Settings.Save();
             mp.Free();
+        }
+        public void WidthList(StackPanel e) {
+            foreach (UserControl a in e.Children) {
+                a.Width = Width - 20;
+            }
         }
         public void WidthUI(Panel wp, double? ContentWidth = null)
         {
@@ -239,6 +313,7 @@ namespace LemonAppCore
             foreach (var dt in data)
             {
                 MusicDataItem md = new MusicDataItem(dt);
+                md.Width = Width - 20;
                 md.type = 0;
                 ResultListBox.Children.Add(md);
             }
@@ -379,6 +454,7 @@ namespace LemonAppCore
             var data = await MusicLib.GetGDAsync(id, null, new Action<Music, bool>((m, b) => {
                 MusicDataItem md = new MusicDataItem(m);
                 md.type = 0;
+                md.Width = Width - 20;
                 ResultListBox.Children.Add(md);
             }));
             listTab.IsSelected = true;
@@ -413,5 +489,147 @@ namespace LemonAppCore
             LoadGDByID(((sender as NormalItem).data as MusicGData).id);
         }
         #endregion
+        #region Download
+        public static Action<Music> DownloadCallBack;
+        private void PushDownload(Music m) {
+            DownloadItem di = new DownloadItem(m);
+            di.Width = this.Width - 20;
+            DownloadList.Children.Add(di);
+            Dl_Stop = false;
+            Dl_PauseBtn.Content = "暂停";
+            if (Dl_RunningCode == 0)
+            {
+                //如果没有启动下载则启动
+                Dl_RunningCode = 2;
+                Dl_Start();
+            }
+            else if (Dl_RunningCode == 1)
+                //如果是暂停则开始下载
+                Dl_RunningCode = 2;
+            //已经在下载就不用管了
+        }
+        private void PushDownload(List<Music> mx)
+        {
+            foreach (var m in mx)
+            {
+                DownloadItem di = new DownloadItem(m);
+                di.Width = this.Width - 20;
+                DownloadList.Children.Add(di);
+            }
+            Dl_Stop = false;
+            Dl_PauseBtn.Content = "暂停";
+            if (Dl_RunningCode == 0)
+            {
+                //如果没有启动下载则启动
+                Dl_RunningCode = 2;
+                Dl_Start();
+            }
+            else if (Dl_RunningCode == 1)
+                //如果是暂停则开始下载
+                Dl_RunningCode = 2;
+            //已经在下载就不用管了
+        }
+        /// <summary>
+        /// DownloadCode 0:Hasn't Start Yet
+        /// 1:Pause  2:Running
+        /// </summary>
+        private int Dl_RunningCode = 0;
+        private int Dl_DownloadIndex = 0;
+        private bool Dl_Stop = false;
+        private  void Dl_Start() {
+            Dl_Download(Dl_DownloadIndex);
+        }
+
+        private async void Dl_Download(int index) {
+            if (DownloadList.Children.Count == index) {
+                //download all finished.
+                Dl_RunningCode = 0;
+                Dispatcher.UIThread.Post(() =>
+                {
+                    Dl_PauseBtn.Content = "开始";
+                });
+                return;
+            }
+            if ((DownloadList.Children[index] as DownloadItem).code != 3)
+            {
+                var m = DownloadList.Children[index] as DownloadItem;
+                string nick= m.data.MusicName + " - " + m.data.SingerText;
+                string Path = Settings.DownloadPath + nick.MakeValidFileName()+".mp3";
+                await Task.Run(async () =>
+                {
+                    string Url = await MusicLib.GetUrlAsync(m.data.MusicID);
+                    HttpWebRequest Myrq = (HttpWebRequest)WebRequest.Create(Url);
+                    Myrq.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9";
+                    Myrq.Headers.Add("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
+                    Myrq.Headers.Add("Cache-Control", "max-age=0");
+                    Myrq.KeepAlive = true;
+                    Myrq.Headers.Add("Cookie", Settings.USettings.cookies);
+                    Myrq.Host = "aqqmusic.tc.qq.com";
+                    Myrq.Headers.Add("Upgrade-Insecure-Requests", "1");
+                    Myrq.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.66 Safari/537.36 Edg/80.0.361.40";
+                    var myrp = (HttpWebResponse)Myrq.GetResponse();
+                    Console.WriteLine(myrp.StatusCode.ToString());
+                    var totalBytes = myrp.ContentLength;
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        //Size:
+                        m.size.Text = Getsize(totalBytes);
+                    });
+                    Stream st = myrp.GetResponseStream();
+                    Stream so = new FileStream(Path, FileMode.Create);
+                    long totalDownloadedByte = 0;
+                    byte[] by = new byte[1048576];
+                    int osize = await st.ReadAsync(by, 0, (int)by.Length);
+                    while (osize > 0)
+                    {
+                        if (Dl_Stop) break;
+                        if (Dl_RunningCode==2)
+                        {
+                            totalDownloadedByte = osize + totalDownloadedByte;
+                            await so.WriteAsync(by, 0, osize);
+                            osize = await st.ReadAsync(by, 0, (int)by.Length);
+                            int Progress = (int)((float)totalDownloadedByte / (float)totalBytes * 100);
+                            // Fresh Progress
+                            Dispatcher.UIThread.Post(() => {
+                                m.pro.Value = Progress;
+                            });
+                        }
+                    }
+                    st.Close();
+                    so.Close();
+                    myrp.Close();
+                    //Finished&Stopped
+                    if (!Dl_Stop)
+                    {
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            m.pro.Value = 0;
+                            m.code = 3;
+                            m.size.Text += "  Finished";
+                        });
+                        Dl_DownloadIndex++;
+                        Dl_Download(Dl_DownloadIndex);
+                    }
+                });
+            }
+            else
+            {
+                Dl_DownloadIndex++;
+                Dl_Download(Dl_DownloadIndex);
+            }
+        }
+        private string Getsize(double size)
+        {
+            string[] units = new string[] { "B", "KB", "MB", "GB", "TB", "PB" };
+            double mod = 1024.0;
+            int i = 0;
+            while (size >= mod)
+            {
+                size /= mod;
+                i++;
+            }
+            return size.ToString("0.00") + units[i];
+        }
+        #endregion 
     }
 }

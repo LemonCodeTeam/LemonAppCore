@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace LemonAppCore.Helpers
 {
-    public class TextHelper
+    public static class TextHelper
     {
         public static string XtoYGetTo(string all, string r, string l, int t)
         {
@@ -26,6 +29,20 @@ namespace LemonAppCore.Helpers
                 }
                 return all.Substring(A, B);
             }
+        }
+        public static string MakeValidFileName(this string text, string replacement = "_")
+        {
+            StringBuilder str = new StringBuilder();
+            var invalidFileNameChars = Path.GetInvalidFileNameChars();
+            foreach (var c in text)
+            {
+                if (invalidFileNameChars.Contains(c))
+                    str.Append(replacement ?? "");
+                else
+                    str.Append(c);
+            }
+
+            return str.ToString();
         }
         public class MD5
         {

@@ -17,17 +17,9 @@ namespace LemonAppCore
             Load();
          */
         public static StData USettings = new StData();
-        public static string CachePath { get
-            {
-                return AppDomain.CurrentDomain.BaseDirectory+"\\Settings\\";
-            } }
-        public static string MusicCachePath
-        {
-            get
-            {
-                return AppDomain.CurrentDomain.BaseDirectory + "\\MusicCache\\";
-            }
-        }
+        public static string CachePath => AppDomain.CurrentDomain.BaseDirectory + "\\Settings\\";
+        public static string MusicCachePath => AppDomain.CurrentDomain.BaseDirectory + "\\MusicCache\\";
+        public static string DownloadPath => AppDomain.CurrentDomain.BaseDirectory + "\\Download\\";
         public static void Load() {
             string fileName = CachePath+"Settings.st";
             if (!File.Exists(fileName))

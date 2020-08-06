@@ -1,0 +1,12 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" Height="45" Width="300" Background="#00000000"
+             x:Class="LemonAppCore.Items.DownloadItem">
+	<Grid>
+		<ProgressBar x:Name="pro" Maximum="100" Value="0" Background="Transparent" Foreground="#406699FF"/>
+		<TextBlock x:Name="title" HorizontalAlignment="Left" VerticalAlignment="Center" Text="Title" Margin="10,0" Foreground="#404040"/>
+		<TextBlock x:Name="size" HorizontalAlignment="Right" VerticalAlignment="Center" Text="Waiting..." Margin="20,0" Foreground="#404040"/>
+	</Grid>
+</UserControl>
