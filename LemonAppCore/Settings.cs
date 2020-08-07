@@ -46,6 +46,8 @@ namespace LemonAppCore
                     }
                     if (json.Contains("PlayingIndex"))
                         USettings.PlayingIndex = int.Parse(obj["PlayingIndex"].ToString());
+                    if (json.Contains("XHMode"))
+                        USettings.XHMode = int.Parse(obj["XHMode"].ToString());
                 }
             }
         }
@@ -64,6 +66,10 @@ namespace LemonAppCore
         public Music LastPlay=new Music();
         public int PlayingIndex = -1;
         public List<Music> MusicGDataPlayList = new List<Music>();
+        /// <summary>
+        /// 循环模式: 0:列表循环 1:单曲循环
+        /// </summary>
+        public int XHMode = 0;
     }
 
     public class JSON

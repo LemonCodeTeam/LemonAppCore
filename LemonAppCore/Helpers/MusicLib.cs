@@ -12,6 +12,99 @@ namespace LemonAppCore.Helpers
 {
     public class MusicLib
     {
+        #region 歌词 获取|处理
+        /// <summary>
+        /// 处理歌词 将歌词写入文件里
+        /// </summary>
+        /// <param name="t"></param>
+        /// <param name="x"></param>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        private static string PushLyric(string t, string x, string file)
+        {
+            List<string> datatime = new List<string>();
+            List<string> datatext = new List<string>();
+            Dictionary<string, string> gcdata = new Dictionary<string, string>();
+            string[] dta = t.Split('\n');
+            foreach (var dt in dta)
+                try
+                {
+                    LyricHelper.parserLine(dt, datatime, datatext, gcdata);
+                }
+                catch { }
+            List<String> dataatimes = new List<String>();
+            List<String> dataatexs = new List<String>();
+            Dictionary<String, String> fydata = new Dictionary<String, String>();
+            String[] dtaa = x.Split('\n');
+            foreach (var dt in dtaa)
+                try
+                {
+                    LyricHelper.parserLine(dt, dataatimes, dataatexs, fydata);
+                }
+                catch { }
+            List<String> KEY = new List<String>();
+            Dictionary<String, String> gcfydata = new Dictionary<String, String>();
+            Dictionary<String, String> list = new Dictionary<String, String>();
+            foreach (var dt in datatime)
+            {
+                KEY.Add(dt);
+                gcfydata.Add(dt, "");
+            }
+            for (int i = 0; i != gcfydata.Count; i++)
+            {
+                if (fydata.ContainsKey(KEY[i]))
+                    gcfydata[KEY[i]] = (gcdata[KEY[i]] + "^" + fydata[KEY[i]]).Replace("\n", "").Replace("\r", "");
+                else
+                {
+                    string dt = LyricHelper.YwY(KEY[i], 1);
+                    if (fydata.ContainsKey(dt))
+                        gcfydata[KEY[i]] = (gcdata[KEY[i]] + "^" + fydata[dt]).Replace("\n", "").Replace("\r", "");
+                    else gcfydata[KEY[i]] = (gcdata[KEY[i]] + "^").Replace("\n", "").Replace("\r", "");
+                }
+            }
+            string LyricData = "";
+            for (int i = 0; i != KEY.Count; i++)
+            {
+                String value = gcfydata[KEY[i]].Replace("[", "").Replace("]", "");
+                String key = KEY[i];
+                LyricData += $"[{key}]{value}\r\n";
+            }
+            File.WriteAllText(file, LyricData);
+            return LyricData;
+        }
+        /// <summary>
+        /// 获取歌词
+        /// </summary>
+        /// <param name="McMind"></param>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        public static async Task<string> GetLyric(string McMind, string file = "")
+        {
+            if (file == "") file = Settings.MusicCachePath + "Lyric\\" + McMind + ".lrc";
+            if (!File.Exists(file))
+            {
+                WebClient c = new WebClient();
+                c.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36");
+                c.Headers.Add("Accept", "*/*");
+                c.Headers.Add("Referer", "https://y.qq.com/portal/player.html");
+                c.Headers.Add("Accept-Language", "zh-CN,zh;q=0.8");
+                c.Headers.Add("Cookie", Settings.USettings.cookies);
+                c.Headers.Add("Host", "c.y.qq.com");
+                string url = $"https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?-=MusicJsonCallback_lrc&pcachetime=1563410858607&songmid={McMind}&g_tk={Settings.USettings.g_tk}&loginUin={Settings.USettings.qq}&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq.json&needNewCode=0";
+                string td = WebUtility.HtmlDecode(c.DownloadString(url));
+                JObject o = JObject.Parse(td);
+                string t = Encoding.UTF8.GetString(Convert.FromBase64String(o["lyric"].ToString())).Replace("&apos;", "\'");
+                if (o["trans"].ToString() == "") { await Task.Run(() => { File.WriteAllText(file, t); }); return t; }
+                else
+                {
+                    string x = Encoding.UTF8.GetString(Convert.FromBase64String(o["trans"].ToString())).Replace("&apos;", "\'");
+                    return PushLyric(t, x, file);
+                }
+            }
+            else
+                return WebUtility.HtmlDecode(File.ReadAllText(file));
+        }
+        #endregion
         public static async Task<List<Music>> SearchMusicAsync(string Content, int osx = 1)
         {
             JObject o = JObject.Parse(await HttpHelper.GetWebAsync($"http://59.37.96.220/soso/fcgi-bin/client_search_cp?format=json&t=0&inCharset=GB2312&outCharset=utf-8&qqmusic_ver=1302&catZhida=0&p={osx}&n=20&w={HttpUtility.UrlDecode(Content)}&flag_qc=0&remoteplace=sizer.newclient.song&new_json=1&lossless=0&aggr=1&cr=1&sem=0&force_zonghe=0"));

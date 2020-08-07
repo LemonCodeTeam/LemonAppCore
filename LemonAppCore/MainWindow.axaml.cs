@@ -28,6 +28,7 @@ namespace LemonAppCore
         MusicPlayer mp = new MusicPlayer(IntPtr.Zero);
         MyTimer t = new MyTimer() { Interval = 1000 };
         MyTimer t_Cleaner = new MyTimer() { Interval = 5000 };
+
         Border MusicImage;
         TextBlock MusicTitle;
         TextBlock MSinger;
@@ -36,11 +37,21 @@ namespace LemonAppCore
         Border PlayBtn;
         Slider jd;
         Avalonia.Controls.Shapes.Path PlayPath;
+        Border GCBtn;
+        Border XHBtn;
+        #endregion
+        #region Lyric
+        TextBlock Lrc_Title;
+        TextBlock Lrc_Singer;
+        LyricView Lrc_LyricView;
         #endregion
         #region DataPanels
-        StackPanel ResultListBox;
-        StackPanel PlayListBox;
-        StackPanel DownloadList;
+        VirtualizingStackPanel ResultListBox;
+        VirtualizingStackPanel PlayListBox;
+        VirtualizingStackPanel DownloadList;
+
+        Grid MainPage;
+        Grid LyricPage;
         #endregion
         #region Search
         ListBox SearchSmartSugBox;
@@ -57,6 +68,7 @@ namespace LemonAppCore
         private TabItem listTab;
         #endregion
         #endregion
+        #region Loader
         public MainWindow()
         {
             InitializeComponent();
@@ -67,16 +79,14 @@ namespace LemonAppCore
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
-            L();
-        }
-        private void L() {
-            this.Closing += MainWindow_Closing;
-            PropertyChanged += MainWindow_PropertyChanged;
             MainWindow_Load();
         }
 
         private void MainWindow_Load()
         {
+            this.Closing += MainWindow_Closing;
+            PropertyChanged += MainWindow_PropertyChanged;
+
             #region Login&ReadSettings
             if (!Directory.Exists(Settings.CachePath))
                 Directory.CreateDirectory(Settings.CachePath);
@@ -86,6 +96,8 @@ namespace LemonAppCore
                 Directory.CreateDirectory(Settings.MusicCachePath + "\\Image\\");
             if (!Directory.Exists(Settings.DownloadPath))
                 Directory.CreateDirectory(Settings.DownloadPath);
+            if (!Directory.Exists(Settings.MusicCachePath + "\\Lyric\\"))
+                Directory.CreateDirectory(Settings.MusicCachePath + "\\Lyric\\");
             Settings.Load();
             if (Settings.USettings.qq != string.Empty)
             {
@@ -96,6 +108,15 @@ namespace LemonAppCore
             }
             this.Get<TextBlock>("UserName").Tapped += LoginBtn_Tapped;
             #endregion
+            #region Lyric
+            Lrc_Title = this.Get<TextBlock>("Lrc_Title");
+            Lrc_Singer = this.Get<TextBlock>("Lrc_Singer");
+            Lrc_LyricView = this.Get<LyricView>("Lrc_LyricView");
+            Lrc_LyricView.mw = this;
+            PropertyChanged += Lrc_LyricView.Mw_PropertyChanged;
+            MusicImage = this.Get<Border>("MusicImage");
+            MusicImage.Tapped += MusicImage_Tapped;
+            #endregion 
             #region Tabs
             MeTab = this.Get<TabItem>("MeTab");
             SearchTab = this.Get<TabItem>("SearchTab");
@@ -103,9 +124,12 @@ namespace LemonAppCore
             listTab = this.Get<TabItem>("listTab");
             #endregion
             #region DataPanels
-            ResultListBox = this.Get<StackPanel>("ResultListBox");
-            PlayListBox = this.Get<StackPanel>("PlayListBox");
-            DownloadList = this.Get<StackPanel>("DownloadList");
+            ResultListBox = this.Get<VirtualizingStackPanel>("ResultListBox");
+            PlayListBox = this.Get<VirtualizingStackPanel>("PlayListBox");
+            DownloadList = this.Get<VirtualizingStackPanel>("DownloadList");
+
+            MainPage = this.Get<Grid>("MainPage");
+            LyricPage = this.Get<Grid>("LyricPage");
             #endregion
             #region Search
             this.Get<Button>("SearchBtn").Click += SearchBtn_Click;
@@ -153,7 +177,6 @@ namespace LemonAppCore
             t_Cleaner.Start();
             this.Get<Border>("LastBtn").Tapped += LastBtn_Tapped;
             this.Get<Border>("NextBtn").Tapped += NextBtn_Tapped;
-            MusicImage = this.Get<Border>("MusicImage");
             MusicTitle = this.Get<TextBlock>("MusicTitle");
             MSinger = this.Get<TextBlock>("MSinger");
             tTime_Now = this.Get<TextBlock>("tTime_Now");
@@ -161,6 +184,18 @@ namespace LemonAppCore
             PlayBtn = this.Get<Border>("PlayBtn");
             PlayPath = this.Get<Avalonia.Controls.Shapes.Path>("PlayPath");
             jd = this.Get<Slider>("jd");
+
+            XHBtn = this.Get<Border>("XHBtn");
+            XHBtn.Tapped += XHBtn_Tapped;
+            if (Settings.USettings.XHMode == 0)
+            {
+                (XHBtn.Child as Avalonia.Controls.Shapes.Path).Data = Geometry.Parse(Properties.Resources.Lbxh);
+            }
+            else
+            {
+                (XHBtn.Child as Avalonia.Controls.Shapes.Path).Data = Geometry.Parse(Properties.Resources.Dqxh);
+            }
+            GCBtn = this.Get<Border>("GCBtn");
             //--------------Event Handler---------------------
             PlayBtn.Tapped += PlayBtn_Tapped;
             jd.AddHandler(PointerPressedEvent, delegate
@@ -218,30 +253,8 @@ namespace LemonAppCore
             };
             #endregion
         }
-
-        private void Dl_CancelAllBtn_Click(object sender, RoutedEventArgs e)
-        {
-            if (Dl_RunningCode == 2 || Dl_RunningCode == 1) {
-                Dl_RunningCode = 0;
-                Dl_Stop = true;
-                DownloadList.Children.Clear();
-            }
-        }
-
-        private void Dl_PauseBtn_Click(object sender, RoutedEventArgs e)
-        {
-            if (Dl_RunningCode == 2)
-            {
-                Dl_RunningCode = 1;
-                Dl_PauseBtn.Content = "开始";
-            }
-            else if (Dl_RunningCode == 1)
-            {
-                Dl_RunningCode = 2;
-                Dl_PauseBtn.Content = "暂停";
-            }
-        }
-
+        #endregion
+        #region MainWindow
         private void MainWindow_PropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
         {
             if (e.Property == WidthProperty)
@@ -259,7 +272,7 @@ namespace LemonAppCore
             Settings.Save();
             mp.Free();
         }
-        public void WidthList(StackPanel e) {
+        public void WidthList(VirtualizingStackPanel e) {
             foreach (UserControl a in e.Children) {
                 a.Width = Width - 20;
             }
@@ -286,7 +299,24 @@ namespace LemonAppCore
             foreach (UserControl dx in wp.Children)
                 dx.Width = (ContentWidth - 20 * lineCount) / lineCount;
         }
-
+        #endregion
+        #region Lyric
+        bool IsLyricPage = false;
+        private void MusicImage_Tapped(object sender, RoutedEventArgs e)
+        {
+            if (IsLyricPage)
+            {
+                IsLyricPage = false;
+                MainPage.IsVisible = true;
+                LyricPage.IsVisible = false;
+            }
+            else {
+                IsLyricPage = true;
+                MainPage.IsVisible = false;
+                LyricPage.IsVisible = true;
+            }
+        }
+        #endregion
         #region Search
         private void SearchSmartSugBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -320,7 +350,21 @@ namespace LemonAppCore
             listTab.IsSelected = true;
         }
         #endregion
-        #region PlayMusic
+        #region PlayMusic & Control
+        private void XHBtn_Tapped(object sender, RoutedEventArgs e)
+        {
+            if (Settings.USettings.XHMode == 0)
+            {
+                Settings.USettings.XHMode = 1;
+                (XHBtn.Child as Avalonia.Controls.Shapes.Path).Data = Geometry.Parse(Properties.Resources.Dqxh);
+            }
+            else
+            {
+                Settings.USettings.XHMode = 0;
+                (XHBtn.Child as Avalonia.Controls.Shapes.Path).Data = Geometry.Parse(Properties.Resources.Lbxh);
+            }
+        }
+
         private void LastBtn_Tapped(object sender, RoutedEventArgs e)
         {
             MusicDataItem k;
@@ -383,11 +427,18 @@ namespace LemonAppCore
             string alls = TimeSpan.FromMilliseconds(all).ToString(@"mm\:ss");
             tTime_All.Text = alls;
             jd.Maximum = all;
+            Lrc_LyricView.LrcRoll(now, IsLyricPage);
 
             if (now == all && now > 2000 && all != 0)
             {
                 //PLAY Finished
-                NextBtn_Tapped(null, null);
+                if (Settings.USettings.XHMode == 0)
+                    NextBtn_Tapped(null, null);
+                else {
+                    mp.Pause();
+                    mp.Position = TimeSpan.FromSeconds(0);
+                    mp.Play();
+                }
             }
         }
         private MusicDataItem Playing;
@@ -400,8 +451,8 @@ namespace LemonAppCore
 
             Bitmap im = await ImageCacheHelp.GetImageByUrl(mData.ImageUrl) ?? await ImageCacheHelp.GetImageByUrl("https://y.gtimg.cn/mediastyle/global/img/album_300.png?max_age=31536000");
             MusicImage.Background = new ImageBrush(im);
-            MusicTitle.Text = mData.MusicName;
-            MSinger.Text = mData.SingerText;
+            MusicTitle.Text = Lrc_Title.Text = mData.MusicName;
+            MSinger.Text = Lrc_Singer.Text = mData.SingerText;
 
             string downloadpath = Settings.MusicCachePath + mData.MusicID + ".mp3";
             if (File.Exists(downloadpath))
@@ -413,6 +464,9 @@ namespace LemonAppCore
                 var musicurl = await MusicLib.GetUrlAsync(mData.MusicID);
                 mp.LoadUrl(downloadpath, musicurl, null, null);
             }
+            //----------LoadLyric------------
+            string dt = await MusicLib.GetLyric(mData.MusicID);
+            Lrc_LyricView.LoadLrc(dt);
             if (onceplay)
             {
                 t.Start();
@@ -473,7 +527,7 @@ namespace LemonAppCore
                 n.Margin = new Thickness(10, 0, 10, 0);
                 Me_MyGDCreated.Children.Add(n);
             }
-
+            WidthUI(Me_MyGDCreated);
             SortedDictionary<string, MusicGData> data1 = await MusicLib.GetGdILikeListAsync();
             Me_MyGDLoved.Children.Clear();
             foreach (var a in data1)
@@ -483,6 +537,7 @@ namespace LemonAppCore
                 n.Margin = new Thickness(10, 0, 10, 0);
                 Me_MyGDLoved.Children.Add(n);
             }
+            WidthUI(Me_MyGDLoved);
         }
         private void GDTap_Tapped(object sender, RoutedEventArgs e)
         {
@@ -490,6 +545,31 @@ namespace LemonAppCore
         }
         #endregion
         #region Download
+
+        private void Dl_CancelAllBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dl_RunningCode == 2 || Dl_RunningCode == 1)
+            {
+                Dl_RunningCode = 0;
+                Dl_Stop = true;
+                DownloadList.Children.Clear();
+            }
+        }
+
+        private void Dl_PauseBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (Dl_RunningCode == 2)
+            {
+                Dl_RunningCode = 1;
+                Dl_PauseBtn.Content = "开始";
+            }
+            else if (Dl_RunningCode == 1)
+            {
+                Dl_RunningCode = 2;
+                Dl_PauseBtn.Content = "暂停";
+            }
+        }
+
         public static Action<Music> DownloadCallBack;
         private void PushDownload(Music m) {
             DownloadItem di = new DownloadItem(m);
