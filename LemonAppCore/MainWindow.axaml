@@ -135,7 +135,7 @@
 		<Grid x:Name="LyricPage" Margin="0,0,0,75" IsVisible="False">
 			<TextBlock x:Name="Lrc_Title" Foreground="#404040" VerticalAlignment="Top" FontSize="22" Margin="10,10,10,0" Text="Title" TextAlignment="Center"/>
 			<TextBlock x:Name="Lrc_Singer" Foreground="#EA404040" VerticalAlignment="Top" FontSize="16" Margin="10,40,10,0" Text="Title" TextAlignment="Center"/>
-			<local:LyricView x:Name="Lrc_LyricView" Margin="30,70,50,50"/>
+			<local:LyricView x:Name="Lrc_LyricView" Margin="50,70,50,50"/>
 		</Grid>
 		<!--底部播放条儿-->
 		<Grid Background="#2D2D30" VerticalAlignment="Bottom" Height="75">

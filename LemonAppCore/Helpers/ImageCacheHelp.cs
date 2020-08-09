@@ -53,7 +53,7 @@ namespace LemonAppCore.Helpers
 
         private static Bitmap GetImageFromFile(string url)
         {
-            string file = Settings.MusicCachePath + "\\Image\\" + TextHelper.MD5.EncryptToMD5string(url) + ".jpg";
+            string file = Path.Combine( Settings.MusicCachePath ,"Image" , TextHelper.MD5.EncryptToMD5string(url) + ".jpg");
             if (File.Exists(file))
                 return GetBitMapImageFromFile(file);
             else return null;
@@ -65,7 +65,7 @@ namespace LemonAppCore.Helpers
         }
         private static async Task<Bitmap> GetImageFromInternet(string url, int[] DecodePixel)
         {
-            string file = Settings.MusicCachePath + "\\Image\\" + TextHelper.MD5.EncryptToMD5string(url) + ".jpg";
+            string file = Path.Combine(Settings.MusicCachePath, "Image", TextHelper.MD5.EncryptToMD5string(url) + ".jpg");
             if (DecodePixel != null)
             {
                 HttpWebRequest hwr = WebRequest.Create(url) as HttpWebRequest;

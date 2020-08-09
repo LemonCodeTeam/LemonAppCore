@@ -1,4 +1,13 @@
-﻿using Avalonia;
+/*
+发布 linux .deb
+open cmd-> cd 项目路径
+dotnet restore -r linux-x64
+dotnet deb install
+dotnet msbuild LemonAppCore.csproj /t:CreateDeb /p:TargetFramework=netcoreapp3.1 /p:RuntimeIdentifier=linux-x64 /p:Configuration=Release 
+
+ */
+
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -86,22 +95,23 @@ namespace LemonAppCore
         {
             this.Closing += MainWindow_Closing;
             PropertyChanged += MainWindow_PropertyChanged;
-
             #region Login&ReadSettings
+            if (!Directory.Exists(Settings.Basedir))
+                Directory.CreateDirectory(Settings.Basedir);
             if (!Directory.Exists(Settings.CachePath))
                 Directory.CreateDirectory(Settings.CachePath);
             if (!Directory.Exists(Settings.MusicCachePath))
                 Directory.CreateDirectory(Settings.MusicCachePath);
-            if (!Directory.Exists(Settings.MusicCachePath + "\\Image\\"))
-                Directory.CreateDirectory(Settings.MusicCachePath + "\\Image\\");
+            if (!Directory.Exists(Path.Combine(Settings.MusicCachePath, "Image")))
+                Directory.CreateDirectory(Path.Combine(Settings.MusicCachePath, "Image"));
             if (!Directory.Exists(Settings.DownloadPath))
                 Directory.CreateDirectory(Settings.DownloadPath);
-            if (!Directory.Exists(Settings.MusicCachePath + "\\Lyric\\"))
-                Directory.CreateDirectory(Settings.MusicCachePath + "\\Lyric\\");
+            if (!Directory.Exists(Path.Combine(Settings.MusicCachePath, "Lyric")))
+                Directory.CreateDirectory(Path.Combine(Settings.MusicCachePath, "Lyric"));
             Settings.Load();
             if (Settings.USettings.qq != string.Empty)
             {
-                this.Get<Border>("UserImg").Background = new ImageBrush(new Bitmap(Settings.CachePath + Settings.USettings.qq + ".jpg"));
+                this.Get<Border>("UserImg").Background = new ImageBrush(new Bitmap(Path.Combine(Settings.CachePath , Settings.USettings.qq + ".jpg")));
                 this.Get<TextBlock>("UserName").Text = Settings.USettings.name;
 
                 SyncBtn_OnClick(null, null);
@@ -454,7 +464,7 @@ namespace LemonAppCore
             MusicTitle.Text = Lrc_Title.Text = mData.MusicName;
             MSinger.Text = Lrc_Singer.Text = mData.SingerText;
 
-            string downloadpath = Settings.MusicCachePath + mData.MusicID + ".mp3";
+            string downloadpath = Path.Combine(Settings.MusicCachePath, mData.MusicID + ".mp3");
             if (File.Exists(downloadpath))
             {
                 mp.Load(downloadpath);
@@ -462,7 +472,15 @@ namespace LemonAppCore
             else
             {
                 var musicurl = await MusicLib.GetUrlAsync(mData.MusicID);
-                mp.LoadUrl(downloadpath, musicurl, null, null);
+                await mp.LoadUrl(downloadpath, musicurl, (str)=> {
+                    Dispatcher.UIThread.Post(() => {
+                        MusicTitle.Text = mData.MusicName + str;
+                    });
+                }, ()=> {
+                    Dispatcher.UIThread.Post(() =>{
+                        MusicTitle.Text = mData.MusicName;
+                    });
+                });
             }
             //----------LoadLyric------------
             string dt = await MusicLib.GetLyric(mData.MusicID);
@@ -491,7 +509,7 @@ namespace LemonAppCore
 
             var sl = await HttpHelper.GetWebDatacAsync($"https://c.y.qq.com/rsc/fcgi-bin/fcg_get_profile_homepage.fcg?loginUin={ld.qq}&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq&needNewCode=0&cid=205360838&ct=20&userid={ld.qq}&reqfrom=1&reqtype=0", Encoding.UTF8);
             var sdc = JObject.Parse(sl)["data"]["creator"];
-            var imgpath = Settings.CachePath + ld.qq + ".jpg";
+            var imgpath =Path.Combine( Settings.CachePath , ld.qq + ".jpg");
             await HttpHelper.HttpDownloadFileAsync(sdc["headpic"].ToString().Replace("http://", "https://"), imgpath);
             string name = sdc["nick"].ToString();
             this.Get<Border>("UserImg").Background = new ImageBrush(new Bitmap(imgpath));
@@ -634,7 +652,7 @@ namespace LemonAppCore
             {
                 var m = DownloadList.Children[index] as DownloadItem;
                 string nick= m.data.MusicName + " - " + m.data.SingerText;
-                string Path = Settings.DownloadPath + nick.MakeValidFileName()+".mp3";
+                string path =Path.Combine(Settings.DownloadPath , nick.MakeValidFileName()+".mp3");
                 await Task.Run(async () =>
                 {
                     string Url = await MusicLib.GetUrlAsync(m.data.MusicID);
@@ -656,7 +674,7 @@ namespace LemonAppCore
                         m.size.Text = Getsize(totalBytes);
                     });
                     Stream st = myrp.GetResponseStream();
-                    Stream so = new FileStream(Path, FileMode.Create);
+                    Stream so = new FileStream(path, FileMode.Create);
                     long totalDownloadedByte = 0;
                     byte[] by = new byte[1048576];
                     int osize = await st.ReadAsync(by, 0, (int)by.Length);
@@ -713,3 +731,4 @@ namespace LemonAppCore
         #endregion 
     }
 }
+

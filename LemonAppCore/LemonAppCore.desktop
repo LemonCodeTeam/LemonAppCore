@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=LemonApp
+Type=Application
+Exec=/usr/share/LemonAppCore/LemonAppCore
+Icon=/usr/share/icons/LemonAppCore.png
+Categories=Audio

@@ -1,4 +1,5 @@
-﻿using System;
+using LemonAppCore.Helpers;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -19,7 +20,9 @@ namespace LemonAppCore
         {
             wind = win;
             BassNet.Registration("lemon.app@qq.com", "2X52325160022");
-            Bass.BASS_Init(-1, 44100, BASSInit.BASS_DEVICE_CPSPEAKERS, win);
+            bool success = Bass.BASS_Init(1, 44100, BASSInit.BASS_DEVICE_DEFAULT, win);
+            Console.WriteLine("Bass Init:"+success);
+            //if(!success)
         }
         public void SetVOL(float value)
         {
@@ -41,36 +44,50 @@ namespace LemonAppCore
         private float _Vol = 1;
         public void Load(string file)
         {
-            stream = Bass.BASS_StreamCreateFile(file, 0L, 0L, BASSFlag.BASS_SAMPLE_FLOAT);
+            Console.WriteLine(file);
+            stream = Bass.BASS_StreamCreateFile(file, 0L, 0L, BASSFlag.BASS_DEFAULT);
+              if(stream==0){
+                    var ax=Bass.BASS_ErrorGetCode();
+                    Console.WriteLine(ax);
+                }
             Bass.BASS_ChannelSetAttribute(stream, BASSAttribute.BASS_ATTRIB_VOL, _Vol);
         }
-        public List<BASSDL> BassdlList = new List<BASSDL>();
-        IntPtr ip = IntPtr.Zero;
-        public void LoadUrl(string path, string url, Action<long, long> proc, Action finish)
+       // public List<BASSDL> BassdlList = new List<BASSDL>();
+       // IntPtr ip = IntPtr.Zero;
+        public async Task LoadUrl(string path, string url, Action<string> proc, Action finish)
         {
-            try
-            {
-                ip = new IntPtr(BassdlList.Count);
-                var Bassdl = new BASSDL(path);
-                BassdlList.Add(Bassdl);
-                Bassdl.procChanged = proc;
-                Bassdl.finished = finish;
-                Bassdl.downloadfailed += (e) => {
+            Console.WriteLine(path);
+            Console.WriteLine(url);
+            proc?.Invoke("    连接资源中...");
+            await HttpHelper.HttpDownloadFileAsync(url, path);
+            Load(path);
+            finish?.Invoke();
+            //        try
+            //        {
+            //            ip = new IntPtr(BassdlList.Count);
+            //            var Bassdl = new BASSDL(path);
+            //            BassdlList.Add(Bassdl);
+            //            Bassdl.procChanged = proc;
+            //            Bassdl.finished = finish;
+            //            Bassdl.downloadfailed += (e) => {
 
-                };
-                stream = Bass.BASS_StreamCreateURL(url + "\r\n"
-                                               + "Host: musichy.tc.qq.com\r\n"
-                                               + "Accept-Encoding: identity;q=1, *;q=0\r\n"
-                                               + "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.66 Safari/537.36 Edg/80.0.361.40\r\n"
-                                               + "Accept: */*\r\n"
-                                               + "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6\r\n"
-                                               + "Cookie:" + Settings.USettings.cookies
-         , 0, BASSFlag.BASS_SAMPLE_FLOAT, Bassdl._myDownloadProc, ip);
-                Bassdl.stream = stream;
-
-                Bass.BASS_ChannelSetAttribute(stream, BASSAttribute.BASS_ATTRIB_VOL, _Vol);
-            }
-            catch { }
+            //            };
+            //            stream = Bass.BASS_StreamCreateURL(url + "\r\n"
+            //                                           + "Host: musichy.tc.qq.com\r\n"
+            //                                           + "Accept-Encoding: identity;q=1, *;q=0\r\n"
+            //                                           + "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.66 Safari/537.36 Edg/80.0.361.40\r\n"
+            //                                           + "Accept: */*\r\n"
+            //                                           + "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6"
+            //     , 0, BASSFlag.BASS_DEFAULT, Bassdl._myDownloadProc, ip);
+            //            Bassdl.stream = stream;
+            //            Console.WriteLine(stream);
+            //            if(stream==0){
+            //                var ax=Bass.BASS_ErrorGetCode();
+            //                Console.WriteLine(ax);
+            //            }
+            //            Bass.BASS_ChannelSetAttribute(stream, BASSAttribute.BASS_ATTRIB_VOL, _Vol);
+            //    }
+            //        catch { }
         }
         public void Play()
         {
@@ -168,7 +185,9 @@ namespace LemonAppCore
                 _fs.Close();
                 _fs = null;
                 FileInfo fi = new FileInfo(DLPath + ".cache");
-                if (fi.Length != len)
+				Console.WriteLine(fi.Length +" --Size-- "+ len);
+				//mp3格式的 会有600~700间差   但只要大于或等于就是加载成功的
+                if (fi.Length < len)
                 {
                     fi.Delete();
                     if (!HasStoped)
@@ -196,3 +215,7 @@ namespace LemonAppCore
         }
     }
 }
+
+
+
+

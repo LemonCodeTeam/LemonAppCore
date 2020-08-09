@@ -80,18 +80,22 @@ namespace LemonAppCore.Helpers
         /// <returns></returns>
         public static async Task<string> GetLyric(string McMind, string file = "")
         {
-            if (file == "") file = Settings.MusicCachePath + "Lyric\\" + McMind + ".lrc";
+            if (file == "") file = Path.Combine(Settings.MusicCachePath, "Lyric", McMind + ".lrc");
             if (!File.Exists(file))
             {
-                WebClient c = new WebClient();
-                c.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36");
-                c.Headers.Add("Accept", "*/*");
-                c.Headers.Add("Referer", "https://y.qq.com/portal/player.html");
-                c.Headers.Add("Accept-Language", "zh-CN,zh;q=0.8");
-                c.Headers.Add("Cookie", Settings.USettings.cookies);
-                c.Headers.Add("Host", "c.y.qq.com");
                 string url = $"https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?-=MusicJsonCallback_lrc&pcachetime=1563410858607&songmid={McMind}&g_tk={Settings.USettings.g_tk}&loginUin={Settings.USettings.qq}&hostUin=0&format=json&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq.json&needNewCode=0";
-                string td = WebUtility.HtmlDecode(c.DownloadString(url));
+                HttpWebRequest hwr = (HttpWebRequest)WebRequest.Create(url);
+                hwr.KeepAlive = true;
+               hwr.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36";
+                hwr.Accept = "*/*";
+                hwr.Referer = "https://y.qq.com/portal/player.html";
+                hwr.Host = "c.y.qq.com";
+                hwr.Headers.Add(HttpRequestHeader.AcceptLanguage, "zh-CN,zh;q=0.8");
+                hwr.Headers.Add(HttpRequestHeader.Cookie, Settings.USettings.cookies);
+                using StreamReader sr = new StreamReader((await hwr.GetResponseAsync()).GetResponseStream(), Encoding.UTF8);
+                var st = await sr.ReadToEndAsync();
+                sr.Dispose();
+                string td = WebUtility.HtmlDecode(st);
                 JObject o = JObject.Parse(td);
                 string t = Encoding.UTF8.GetString(Convert.FromBase64String(o["lyric"].ToString())).Replace("&apos;", "\'");
                 if (o["trans"].ToString() == "") { await Task.Run(() => { File.WriteAllText(file, t); }); return t; }
@@ -215,7 +219,7 @@ namespace LemonAppCore.Helpers
                 return await GetUrlAsync(Musicid);
             }
             var mid = JObject.Parse(await HttpHelper.GetWebDatacAsync($"https://c.y.qq.com/v8/fcg-bin/fcg_play_single_song.fcg?songmid={Musicid}&platform=yqq&format=json"))["data"][0]["file"]["media_mid"].ToString();
-            return $"http://musichy.tc.qq.com/amobile.music.tc.qq.com/C400{mid}.m4a" + vk + "&fromtag=98";
+            return $"http://musichy.tc.qq.com/amobile.music.tc.qq.com/M500{mid}.mp3" + vk + "&fromtag=98";
         }
 
         /// <summary>

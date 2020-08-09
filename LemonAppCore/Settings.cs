@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
@@ -6,6 +6,7 @@ using System.Text;
 using System.Runtime.Serialization.Json;
 using Newtonsoft.Json.Linq;
 using LemonAppCore.Helpers;
+using System.Runtime.InteropServices;
 
 namespace LemonAppCore
 {
@@ -17,11 +18,26 @@ namespace LemonAppCore
             Load();
          */
         public static StData USettings = new StData();
-        public static string CachePath => AppDomain.CurrentDomain.BaseDirectory + "\\Settings\\";
-        public static string MusicCachePath => AppDomain.CurrentDomain.BaseDirectory + "\\MusicCache\\";
-        public static string DownloadPath => AppDomain.CurrentDomain.BaseDirectory + "\\Download\\";
+        public static string Basedir { get {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal),"Documents", "LemonAppCoreCache");
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "LemonAppCoreCache");
+                else return "";
+            } }
+        public static string CachePath => Path.Combine(Basedir, "Settings");
+        public static string MusicCachePath => Path.Combine(Basedir, "MusicCache");
+        //Environment.GetEnvironmentVariable
+        //$HOME/Music
+        public static string DownloadPath { get {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal),"Music", "LemonAppCoreDownload");
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "LemonAppCoreDownload");
+                else return "";
+            } }
         public static void Load() {
-            string fileName = CachePath+"Settings.st";
+            string fileName = Path.Combine(CachePath,"Settings.st");
             if (!File.Exists(fileName))
             {
                 //No Login
@@ -52,7 +68,7 @@ namespace LemonAppCore
             }
         }
         public static async void Save() {
-            string fileName = CachePath + "Settings.st";
+            string fileName = Path.Combine(CachePath, "Settings.st");
             await File.WriteAllTextAsync(fileName, JSON.ToJSON(USettings));
         }
     }
@@ -86,3 +102,4 @@ namespace LemonAppCore
         }
     }
 }
+
