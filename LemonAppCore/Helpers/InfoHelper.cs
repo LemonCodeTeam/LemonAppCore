@@ -4,6 +4,12 @@ using System.Text;
 
 namespace LemonAppCore.Helpers
 {
+    public class LyricData
+    {
+        public string lyric;
+        public string trans;
+        public bool HasTrans;
+    }
     public class SSBox
     {
         public string desc { get; set; }

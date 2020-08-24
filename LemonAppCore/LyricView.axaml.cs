@@ -2,6 +2,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using LemonAppCore.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,13 +12,14 @@ namespace LemonAppCore
 {
     public class LyricView : UserControl
     {
-        public delegate void NextData(string text);
+        public delegate void NextData(string text,string lyric);
         public event NextData NextLyric;
         #region 
         public class LrcModel
         {
             public TextBlock c_LrcTb { get; set; }
             public string LrcText { get; set; }
+            public string LrcTransText { get; set; }
             public double Time { get; set; }
         }
         #endregion
@@ -52,25 +54,56 @@ namespace LemonAppCore
 
         ScrollViewer c_scrollviewer;
         VirtualizingStackPanel c_lrc_items;
-
-        public void LoadLrc(string lrcstr)
+        Brush SeletColor = new SolidColorBrush(Color.Parse("#6699FF"));
+        public void LoadLrc(LyricData data)
         {
             Lrcs.Clear();
             c_lrc_items.Children.Clear();
             foucslrc = null;
-            foreach (string str in lrcstr.Split("\r\n".ToCharArray()))
+
+            string[] lrcdata = data.lyric.Split('\n');
+            string[] transdata = null;
+            Dictionary<double, string> transDic = null;
+            if (data.HasTrans)
             {
-                if (str.Length > 0 && str.IndexOf(":") != -1 && !str.StartsWith("[ti:") && !str.StartsWith("[ar:") && !str.StartsWith("[al:") && !str.StartsWith("[by:") && !str.StartsWith("[offset:"))
+                transdata = data.trans.Split('\n');
+                transDic = new Dictionary<double, string>();
+                foreach (string str in transdata)
                 {
+                    if (CanSolve(str))
+                    {
+                        TimeSpan time = GetTime(str);
+                        string tran = str.Split(']')[1];
+                        transDic.Add(time.TotalMilliseconds, tran);
+                    }
+                }
+            }
+            foreach (string str in lrcdata)
+            {
+                if (CanSolve(str))
+                {
+                    //以歌词Lyric内的时间为准....
                     TimeSpan time = GetTime(str);
+
+                    //歌词翻译的  解析和适配
+                    //1.正常对应
+                    //2.翻译与歌词之间有+-2ms的误差
                     string lrc = str.Split(']')[1];
+                    string trans = null;
+                    if (data.HasTrans)
+                    {
+                        IEnumerable<KeyValuePair<double, string>> s = transDic.Where(m => m.Key >= (time.TotalMilliseconds - 1));
+                        string a = s.First().Value;
+                        trans = a == "//" ? null : a;
+                    }
+
                     TextBlock c_lrcbk = new TextBlock();
-                    c_lrcbk.FontSize = 20;
-                    c_lrcbk.Width = mw.Width - 100;
+                    c_lrcbk.FontSize = 22;
                     c_lrcbk.Foreground = NoramlLrcColor;
                     c_lrcbk.TextWrapping = TextWrapping.Wrap;
                     c_lrcbk.TextAlignment = TextAlignment;
-                    c_lrcbk.Text = lrc.Replace("^", "\n").Replace("//", "").Replace("null", "");
+                    c_lrcbk.Text = lrc + (trans == null ? "" : ("\r\n" + trans));
+
                     if (c_lrc_items.Children.Count > 0)
                         c_lrcbk.Margin = new Thickness(0, 15, 0, 15);
                     if (!Lrcs.ContainsKey(time.TotalMilliseconds))
@@ -78,34 +111,46 @@ namespace LemonAppCore
                         {
                             c_LrcTb = c_lrcbk,
                             LrcText = lrc,
-                            Time = time.TotalMilliseconds
-
+                            Time = time.TotalMilliseconds,
+                            LrcTransText = trans
                         });
                     c_lrc_items.Children.Add(c_lrcbk);
                 }
             }
         }
+        public bool CanSolve(string str)
+        {
+            if (str.Length > 0)
+            {
+                //直接判断是否为数字...
+                var key = TextHelper.XtoYGetTo(str, "[", ":", 0);
+                return int.TryParse(key, out _);
+            }
+            else return false;
+        }
+
         public TimeSpan GetTime(string str)
         {
             Regex reg = new Regex(@"\[(?<time>.*)\]", RegexOptions.IgnoreCase);
             string timestr = reg.Match(str).Groups["time"].Value;
-            int m = Convert.ToInt32(timestr.Split(':')[0]);
+            string[] sp = timestr.Split(':');
+            int m = Convert.ToInt32(sp[0]);
             int s = 0, f = 0;
-            if (timestr.Split(':')[1].IndexOf(".") != -1)
+            if (sp[1].IndexOf(".") != -1)
             {
-                s = Convert.ToInt32(timestr.Split(':')[1].Split('.')[0]);
-                f = Convert.ToInt32(timestr.Split(':')[1].Split('.')[1]);
+                s = Convert.ToInt32(sp[1].Split('.')[0]);
+                f = Convert.ToInt32(sp[1].Split('.')[1]);
             }
             else
-                s = Convert.ToInt32(timestr.Split(':')[1]);
-            return new TimeSpan(0, 0, m, s, f);
+                s = Convert.ToInt32(sp[1]);
+                return new TimeSpan(0, 0, m, s, f);
         }
         public void LrcRoll(double nowtime, bool needScrol)
         {
             if (foucslrc == null)
             {
                 foucslrc = Lrcs.Values.First();
-                foucslrc.c_LrcTb.Foreground = FoucsLrcColor;
+                foucslrc.c_LrcTb.Foreground = SeletColor;
             }
             else
             {
@@ -119,14 +164,10 @@ namespace LemonAppCore
                     foucslrc = lm;
                     if (needScrol)
                     {
-                        foucslrc.c_LrcTb.Foreground = FoucsLrcColor;
+                        foucslrc.c_LrcTb.Foreground = SeletColor;
                         ResetLrcviewScroll();
                     }
-                    string tx = foucslrc.LrcText.Replace("//", "");
-                    if (tx.Substring(tx.Length - 1, 1) == "^")
-                        tx = tx.Substring(0, tx.Length - 1);
-                    tx = tx.Replace("^", "\r\n");
-                    NextLyric?.Invoke(tx);
+                    NextLyric?.Invoke(foucslrc.LrcText, foucslrc.LrcTransText);
                 }
             }
         }

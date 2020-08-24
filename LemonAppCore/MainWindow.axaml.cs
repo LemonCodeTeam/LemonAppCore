@@ -483,7 +483,7 @@ namespace LemonAppCore
                 });
             }
             //----------LoadLyric------------
-            string dt = await MusicLib.GetLyric(mData.MusicID);
+            LyricData dt = await MusicLib.GetLyric(mData.MusicID);
             Lrc_LyricView.LoadLrc(dt);
             if (onceplay)
             {
