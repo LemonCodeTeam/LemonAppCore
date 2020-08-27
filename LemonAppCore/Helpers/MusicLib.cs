@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -187,7 +188,8 @@ namespace LemonAppCore.Helpers
             StreamReader sr = new StreamReader(o.GetResponseStream(), Encoding.UTF8);
             var st = await sr.ReadToEndAsync();
             sr.Dispose();
-            string vk = TextHelper.XtoYGetTo(st, "amobile.music.tc.qq.com/C400000By9MX0yKL2c.m4a", "&fromtag=38", 0);
+            string val = Regex.Match(st, "amobile.music.tc.qq.com/.*?.m4a.*?&fromtag=38").Value;
+            string vk = TextHelper.XtoYGetTo(val, "m4a", "&fromtag=38", 0);
             if (string.IsNullOrEmpty(vk))
             {
                 await Task.Delay(500);

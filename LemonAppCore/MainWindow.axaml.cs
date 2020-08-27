@@ -279,8 +279,10 @@ namespace LemonAppCore
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            e.Cancel = false;
             Settings.Save();
             mp.Free();
+            Environment.Exit(0);
         }
         public void WidthList(VirtualizingStackPanel e) {
             foreach (UserControl a in e.Children) {
